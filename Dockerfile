@@ -1,17 +1,22 @@
 FROM node:18
 
-RUN apt update && \
-    apt install -y wget netcat-traditional && \
-    wget -q -O /usr/bin/wait-for https://raw.githubusercontent.com/eficode/wait-for/v2.2.3/wait-for && \
-    chmod +x /usr/bin/wait-for
+ENV DOCKERIZE_VERSION v0.8.0
+
+RUN apt-get update \
+    && apt-get install -y wget \
+    && wget -O - https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar xzf - -C /usr/local/bin \
+    && apt-get autoremove -yqq --purge wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package*.json ./
+
 RUN npm install
 
 COPY . .
 
 EXPOSE 3000
+
+ENTRYPOINT ["dockerize", "-wait", "tcp://db:3306", "-timeout", "20s", "docker-entrypoint.sh"]
 
 CMD ["npm", "start"]
